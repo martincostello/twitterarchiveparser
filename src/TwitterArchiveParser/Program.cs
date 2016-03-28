@@ -27,9 +27,12 @@ namespace MartinCostello.TwitterArchiveParser
 
             try
             {
-                var tweets = ReadTweetsFromArchive(archivePath: args.FirstOrDefault() ?? Environment.CurrentDirectory);
+                string archivePath = args.FirstOrDefault() ?? Environment.CurrentDirectory;
 
-                ProcessTweets(tweets);
+                var user = ReadUserFromArchive(archivePath);
+                var tweets = ReadTweetsFromArchive(archivePath);
+
+                ProcessTweets(user, tweets);
             }
             catch (Exception ex)
             {
@@ -41,6 +44,39 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Builds the data path from the specified archive path and sub-directories.
+        /// </summary>
+        /// <param name="archivePath">The path of the directory containing the archive data.</param>
+        /// <param name="paths">The optional sub-directories to get the data path for.</param>
+        /// <returns>
+        /// A <see cref="string"/> containing the full path for the specified data directory.
+        /// </returns>
+        private static string BuildDataPath(string archivePath, params string[] paths)
+        {
+            string dataPath = Path.Combine(archivePath, ConfigurationManager.AppSettings["ArchiveDataPath"]);
+            string directoryPath = Path.Combine(paths);
+
+            string path = Path.Combine(dataPath, directoryPath);
+
+            return Path.GetFullPath(path);
+        }
+
+        /// <summary>
+        /// Reads the raw JSON from the specified <c>JavaScript</c> file.
+        /// </summary>
+        /// <param name="fileName">The path to the <c>JavaScript</c> file containing JSON.</param>
+        /// <returns>
+        /// A <see cref="string"/> containing the JSON in the specified file.
+        /// </returns>
+        private static string ReadJsonFromFile(string fileName)
+        {
+            string[] lines = File.ReadAllLines(fileName, Encoding.UTF8);
+
+            // Skip the header
+            return string.Join(Environment.NewLine, lines.Skip(1));
+        }
+
+        /// <summary>
         /// Reads the tweet data from the specified Twitter archive directory.
         /// </summary>
         /// <param name="archivePath">The path to the directory containing the Twitter archive.</param>
@@ -49,17 +85,15 @@ namespace MartinCostello.TwitterArchiveParser
         /// </returns>
         private static IEnumerable<JObject> ReadTweetsFromArchive(string archivePath)
         {
-            string dataPath = Path.Combine(archivePath, ConfigurationManager.AppSettings["ArchiveDataPath"]);
+            string tweetsPath = BuildDataPath(archivePath, "tweets");
 
-            dataPath = Path.GetFullPath(dataPath);
-
-            var dataFiles = Directory.EnumerateFiles(dataPath, "*.js").OrderBy((p) => p);
+            var dataFiles = Directory.EnumerateFiles(tweetsPath, "*.js").OrderBy((p) => p);
 
             var timeline = Enumerable.Empty<JObject>();
 
             foreach (string fileName in dataFiles)
             {
-                var tweets = ReadTweetsFromJavaScript(fileName);
+                var tweets = ReadTweetsFromFile(fileName);
                 timeline = timeline.Concat(tweets);
             }
 
@@ -73,12 +107,9 @@ namespace MartinCostello.TwitterArchiveParser
         /// <returns>
         /// An <see cref="IEnumerable{T}"/> containing the tweets in the specified file.
         /// </returns>
-        private static IEnumerable<JObject> ReadTweetsFromJavaScript(string fileName)
+        private static IEnumerable<JObject> ReadTweetsFromFile(string fileName)
         {
-            string[] lines = File.ReadAllLines(fileName, Encoding.UTF8);
-
-            // Skip the header
-            string json = string.Join(Environment.NewLine, lines.Skip(1));
+            string json = ReadJsonFromFile(fileName);
 
             var tweets = JArray.Parse(json);
 
@@ -88,15 +119,41 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
-        /// Processes the specified tweets.
+        /// Reads the user data from the specified Twitter archive directory.
         /// </summary>
+        /// <param name="archivePath">The path to the directory containing the Twitter archive.</param>
+        /// <returns>
+        /// A <see cref="JObject"/> containing the user read from the specified Twitter archive.
+        /// </returns>
+        private static JObject ReadUserFromArchive(string archivePath)
+        {
+            string userPath = BuildDataPath(archivePath);
+            string fileName = Path.Combine(userPath, "user_details.js");
+
+            string json = ReadJsonFromFile(fileName);
+
+            const string JObjectPrefix = "{";
+
+            if (!json.StartsWith(JObjectPrefix, StringComparison.Ordinal))
+            {
+                json = JObjectPrefix + json;
+            }
+
+            return JObject.Parse(json);
+        }
+
+        /// <summary>
+        /// Processes the specified user's tweets.
+        /// </summary>
+        /// <param name="user">The user the tweets belong to.</param>
         /// <param name="tweets">The tweets to process.</param>
-        private static void ProcessTweets(IEnumerable<JObject> tweets)
+        private static void ProcessTweets(JObject user, IEnumerable<JObject> tweets)
         {
             var orderedTweets = tweets
                 .OrderBy((p) => p["id"])
                 .ToArray();
 
+            UserDetails(user);
             CountTweets(orderedTweets);
             Top10Mentions(orderedTweets);
         }
@@ -133,6 +190,22 @@ namespace MartinCostello.TwitterArchiveParser
                 var user = top10Interactions[i];
                 Console.WriteLine($"  {i + 1, 2:N0}. @{user.screen_name} ({user.count:N0})");
             }
+
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Prints details about the specified Twitter user.
+        /// </summary>
+        /// <param name="user">The Twitter user to print the details for.</param>
+        private static void UserDetails(JObject user)
+        {
+            Console.WriteLine(
+                $@"Screen name: @{user["screen_name"]}
+         Id: {user["id"]}
+  Full name: {user["full_name" ?? "?"]}
+Date joined: {user["created_at"]},
+   Location: {user["location"] ?? "?"}");
 
             Console.WriteLine();
         }
