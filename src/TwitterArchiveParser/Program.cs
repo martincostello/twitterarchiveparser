@@ -28,7 +28,8 @@ namespace MartinCostello.TwitterArchiveParser
             try
             {
                 var tweets = ReadTweetsFromArchive(archivePath: args.FirstOrDefault() ?? Environment.CurrentDirectory);
-                ProcessTweets(tweets.OfType<JObject>());
+
+                ProcessTweets(tweets);
             }
             catch (Exception ex)
             {
