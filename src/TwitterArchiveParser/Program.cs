@@ -62,6 +62,48 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Prints the number of media items embedded in the tweets in the specified collection.
+        /// </summary>
+        /// <param name="tweets">The tweets to count the media in.</param>
+        private static void CountMedia(IEnumerable<JObject> tweets)
+        {
+            var media = tweets
+                .SelectMany((p) => p["entities"]?["media"]?.OfType<JObject>())
+                .ToArray();
+
+            Console.WriteLine($"This Twitter archive contains {media.Length:N0} items of media.");
+            Console.WriteLine();
+
+            var mediaTypes = media
+                .GroupBy((p) => ((string)p["media_url"]).Split('.').Last().ToUpperInvariant())
+                .Select((p) => new { type = p.Key, count = p.Count() })
+                .OrderByDescending((p) => p.count)
+                .Take(10)
+                .ToArray();
+
+            Console.WriteLine($"Top {mediaTypes.Length} media types:");
+            Console.WriteLine();
+
+            for (int i = 0; i < mediaTypes.Length; i++)
+            {
+                var mediaType = mediaTypes[i];
+                Console.WriteLine($"  {i + 1, 2:N0}. {mediaType.type} ({mediaType.count:N0})");
+            }
+
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Prints the number of tweets in the specified collection.
+        /// </summary>
+        /// <param name="tweets">The tweets to count.</param>
+        private static void CountTweets(IEnumerable<JObject> tweets)
+        {
+            Console.WriteLine($"This Twitter archive contains {tweets.Count():N0} tweets.");
+            Console.WriteLine();
+        }
+
+        /// <summary>
         /// Reads the raw JSON from the specified <c>JavaScript</c> file.
         /// </summary>
         /// <param name="fileName">The path to the <c>JavaScript</c> file containing JSON.</param>
@@ -155,18 +197,9 @@ namespace MartinCostello.TwitterArchiveParser
 
             UserDetails(user);
             CountTweets(orderedTweets);
+            CountMedia(orderedTweets);
             Top10Mentions(orderedTweets);
             Top10Hashtags(orderedTweets);
-        }
-
-        /// <summary>
-        /// Prints the number of tweets in the specified collection.
-        /// </summary>
-        /// <param name="tweets">The tweets to count.</param>
-        private static void CountTweets(IEnumerable<JObject> tweets)
-        {
-            Console.WriteLine($"This Twitter archive contains {tweets.Count():N0} tweets.");
-            Console.WriteLine();
         }
 
         /// <summary>
