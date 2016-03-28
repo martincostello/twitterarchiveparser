@@ -164,7 +164,7 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="tweets">The tweets to count.</param>
         private static void CountTweets(IEnumerable<JObject> tweets)
         {
-            Console.WriteLine($"The Twitter archive contains {tweets.Count():N0} tweets.");
+            Console.WriteLine($"This Twitter archive contains {tweets.Count():N0} tweets.");
             Console.WriteLine();
         }
 
