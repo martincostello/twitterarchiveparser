@@ -36,7 +36,6 @@ namespace MartinCostello.TwitterArchiveParser
                 Console.WriteLine(ex.ToString());
             }
 
-            Console.WriteLine();
             Console.Write("Press any key to exit...");
             Console.ReadKey();
         }
@@ -98,7 +97,44 @@ namespace MartinCostello.TwitterArchiveParser
                 .OrderBy((p) => p["id"])
                 .ToArray();
 
-            Console.WriteLine($"The Twitter archive contains {orderedTweets.Count():N0} tweets.");
+            CountTweets(orderedTweets);
+            Top10Mentions(orderedTweets);
+        }
+
+        /// <summary>
+        /// Prints the number of tweets in the specified collection.
+        /// </summary>
+        /// <param name="tweets">The tweets to count.</param>
+        private static void CountTweets(IEnumerable<JObject> tweets)
+        {
+            Console.WriteLine($"The Twitter archive contains {tweets.Count():N0} tweets.");
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Prints up to the top 10 most mentioned users in the specified tweets.
+        /// </summary>
+        /// <param name="tweets">The tweets to get up to the top 10 mentions for.</param>
+        private static void Top10Mentions(IEnumerable<JObject> tweets)
+        {
+            var top10Interactions = tweets
+                .SelectMany((p) => p["entities"]?["user_mentions"]?.OfType<JObject>())
+                .GroupBy((p) => p["screen_name"])
+                .Select((p) => new { screen_name = p.Key, count = p.Count() })
+                .OrderByDescending((p) => p.count)
+                .Take(10)
+                .ToArray();
+
+            Console.WriteLine($"Top {top10Interactions.Length} mentioned users:");
+            Console.WriteLine();
+
+            for (int i = 0; i < top10Interactions.Length; i++)
+            {
+                var user = top10Interactions[i];
+                Console.WriteLine($"  {i + 1, 2:N0}. @{user.screen_name} ({user.count:N0})");
+            }
+
+            Console.WriteLine();
         }
 
         /// <summary>
