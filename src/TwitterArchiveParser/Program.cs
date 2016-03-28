@@ -211,7 +211,7 @@ Date joined: {user["created_at"]},
         }
 
         /// <summary>
-        /// Prints a banner to the console containing assembly and operating system information.
+        /// Prints a banner to the console containing application information.
         /// </summary>
         private static void PrintBanner()
         {
