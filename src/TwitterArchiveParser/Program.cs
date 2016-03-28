@@ -381,6 +381,7 @@ Date joined: {user["created_at"]},
             var tweets = ReadTweetsFromArchive(archivePath);
 
             int count = 0;
+            var options = new UpdateOptions { IsUpsert = true };
 
             foreach (var tweet in tweets)
             {
@@ -389,13 +390,15 @@ Date joined: {user["created_at"]},
 
                 document["_id"] = document["id"];
 
-                // TODO Support upsert
-                await collection.InsertOneAsync(document);
+                await collection.ReplaceOneAsync(
+                    (p) => p["_id"] == document["id"],
+                    document,
+                    options);
 
                 count++;
             }
 
-            Console.WriteLine($"imported {count:N0} tweets.");
+            Console.WriteLine($"imported/updated {count:N0} tweets.");
             Console.WriteLine();
         }
 
