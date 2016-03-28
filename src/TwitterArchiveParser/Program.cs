@@ -211,7 +211,7 @@ namespace MartinCostello.TwitterArchiveParser
             var hashtags = tweets
                 .SelectMany((p) => p["entities"]?["hashtags"]?.OfType<JObject>())
                 .GroupBy((p) => ((string)p["text"]).ToLowerInvariant())
-                .Select((p) => new { screen_name = p.Key, count = p.Count() })
+                .Select((p) => new { text = p.Key, count = p.Count() })
                 .OrderByDescending((p) => p.count)
                 .Take(10)
                 .ToArray();
@@ -222,7 +222,7 @@ namespace MartinCostello.TwitterArchiveParser
             for (int i = 0; i < hashtags.Length; i++)
             {
                 var hashtag = hashtags[i];
-                Console.WriteLine($"  {i + 1, 2:N0}. #{hashtag.screen_name} ({hashtag.count:N0})");
+                Console.WriteLine($"  {i + 1, 2:N0}. #{hashtag.text} ({hashtag.count:N0})");
             }
 
             Console.WriteLine();
