@@ -10,6 +10,9 @@ namespace MartinCostello.TwitterArchiveParser
     using System.Linq;
     using System.Reflection;
     using System.Text;
+    using System.Threading.Tasks;
+    using MongoDB.Bson;
+    using MongoDB.Driver;
     using Newtonsoft.Json.Linq;
 
     /// <summary>
@@ -29,10 +32,15 @@ namespace MartinCostello.TwitterArchiveParser
             {
                 string archivePath = args.FirstOrDefault() ?? Environment.CurrentDirectory;
 
-                var user = ReadUserFromArchive(archivePath);
-                var tweets = ReadTweetsFromArchive(archivePath);
-
-                ProcessTweets(user, tweets);
+                if (string.Equals(archivePath, "--import-to-mongodb", StringComparison.OrdinalIgnoreCase))
+                {
+                    archivePath = args.ElementAtOrDefault(1) ?? Environment.CurrentDirectory;
+                    ImportTweetsAsync(archivePath).Wait();
+                }
+                else
+                {
+                    ProcessTweets(archivePath);
+                }
             }
             catch (Exception ex)
             {
@@ -249,6 +257,18 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Processes the tweets from the specified Twitter archive directory.
+        /// </summary>
+        /// <param name="archivePath">The path to the directory containing the Twitter archive.</param>
+        private static void ProcessTweets(string archivePath)
+        {
+            var user = ReadUserFromArchive(archivePath);
+            var tweets = ReadTweetsFromArchive(archivePath);
+
+            ProcessTweets(user, tweets);
+        }
+
+        /// <summary>
         /// Processes the specified user's tweets.
         /// </summary>
         /// <param name="user">The user the tweets belong to.</param>
@@ -334,6 +354,48 @@ namespace MartinCostello.TwitterArchiveParser
 Date joined: {user["created_at"]},
    Location: {user["location"] ?? "?"}");
 
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Imports the tweets from the specified Twitter archive directory into the configured
+        /// <c>MongoDB</c> server, database and collection as an asynchronous operation.
+        /// </summary>
+        /// <param name="archivePath">The path to the directory containing the Twitter archive.</param>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation to import the tweets into <c>MongoDb</c>.
+        /// </returns>
+        private static async Task ImportTweetsAsync(string archivePath)
+        {
+            Console.Write("Importing tweets into MongoDB...");
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MongoDB"].ConnectionString;
+            string databaseName = ConfigurationManager.AppSettings["MongoDB:Database"];
+            string collectionName = ConfigurationManager.AppSettings["MongoDB:Collection"];
+
+            var client = new MongoClient();
+            var database = client.GetDatabase(databaseName);
+
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            var tweets = ReadTweetsFromArchive(archivePath);
+
+            int count = 0;
+
+            foreach (var tweet in tweets)
+            {
+                var json = tweet.ToString();
+                var document = BsonDocument.Parse(json);
+
+                document["_id"] = document["id"];
+
+                // TODO Support upsert
+                await collection.InsertOneAsync(document);
+
+                count++;
+            }
+
+            Console.WriteLine($"imported {count:N0} tweets.");
             Console.WriteLine();
         }
 
