@@ -62,6 +62,21 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Prints the number of tweets in the specified collection that were geo-tagged.
+        /// </summary>
+        /// <param name="tweets">The tweets to count for geo-tags.</param>
+        private static void CountGeotaggedTweets(IEnumerable<JObject> tweets)
+        {
+            var geotags = tweets
+                .Select((p) => p["geo"]?["coordinates"])
+                .Where((p) => p != null)
+                .ToArray();
+
+            Console.WriteLine($"This Twitter archive contains {geotags.Length:N0} geo-tagged tweets.");
+            Console.WriteLine();
+        }
+
+        /// <summary>
         /// Prints the number of media items embedded in the tweets in the specified collection.
         /// </summary>
         /// <param name="tweets">The tweets to count the media in.</param>
@@ -198,6 +213,7 @@ namespace MartinCostello.TwitterArchiveParser
             UserDetails(user);
             CountTweets(orderedTweets);
             CountMedia(orderedTweets);
+            CountGeotaggedTweets(orderedTweets);
             Top10Mentions(orderedTweets);
             Top10Hashtags(orderedTweets);
         }
