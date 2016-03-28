@@ -109,6 +109,39 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Prints the number of retweets in the tweets in the specified collection.
+        /// </summary>
+        /// <param name="tweets">The tweets to count the retweets in.</param>
+        private static void CountRetweets(IEnumerable<JObject> tweets)
+        {
+            var retweets = tweets
+                .Select((p) => p["retweeted_status"])
+                .Where((p) => p != null)
+                .ToArray();
+
+            Console.WriteLine($"This Twitter archive contains {retweets.Length:N0} retweets.");
+            Console.WriteLine();
+
+            var retweetedUsers = retweets
+                .GroupBy((p) => p["user"]?["screen_name"])
+                .Select((p) => new { screen_name = p.Key, count = p.Count() })
+                .OrderByDescending((p) => p.count)
+                .Take(10)
+                .ToArray();
+
+            Console.WriteLine($"Top {retweetedUsers.Length} retweeted users:");
+            Console.WriteLine();
+
+            for (int i = 0; i < retweetedUsers.Length; i++)
+            {
+                var mediaType = retweetedUsers[i];
+                Console.WriteLine($"  {i + 1, 2:N0}. {mediaType.screen_name} ({mediaType.count:N0})");
+            }
+
+            Console.WriteLine();
+        }
+
+        /// <summary>
         /// Prints the number of tweets in the specified collection.
         /// </summary>
         /// <param name="tweets">The tweets to count.</param>
@@ -212,6 +245,7 @@ namespace MartinCostello.TwitterArchiveParser
 
             UserDetails(user);
             CountTweets(orderedTweets);
+            CountRetweets(orderedTweets);
             CountMedia(orderedTweets);
             CountGeotaggedTweets(orderedTweets);
             Top10Mentions(orderedTweets);
