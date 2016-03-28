@@ -152,6 +152,22 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Displays the user's first tweet.
+        /// </summary>
+        /// <param name="tweet">The first tweet.</param>
+        private static void FirstTweet(JObject tweet)
+        {
+            Console.WriteLine("First tweet:");
+            Console.WriteLine();
+
+            Console.WriteLine(
+                $@"  Posted at: {tweet["created_at"]}
+
+  Text: ""{tweet["text"]}"" ({((string)tweet["text"]).Length} characters)
+");
+        }
+
+        /// <summary>
         /// Reads the raw JSON from the specified <c>JavaScript</c> file.
         /// </summary>
         /// <param name="fileName">The path to the <c>JavaScript</c> file containing JSON.</param>
@@ -250,6 +266,7 @@ namespace MartinCostello.TwitterArchiveParser
             CountGeotaggedTweets(orderedTweets);
             Top10Mentions(orderedTweets);
             Top10Hashtags(orderedTweets);
+            FirstTweet(orderedTweets.First());
         }
 
         /// <summary>
