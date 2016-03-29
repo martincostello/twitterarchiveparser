@@ -447,7 +447,7 @@ Date joined: {user["created_at"]},
 
                 document["_id"] = document["id"];
 
-                await collection.ReplaceOneAsync(
+                await collection.UpdateOneAsync(
                     (p) => p["_id"] == document["id"],
                     document,
                     options);
