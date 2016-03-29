@@ -176,6 +176,28 @@ namespace MartinCostello.TwitterArchiveParser
         }
 
         /// <summary>
+        /// Loads a list of common English words.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IEnumerable{T}"/> containing common English words.
+        /// </returns>
+        private static IEnumerable<string> LoadCommonEnglishWords()
+        {
+            var type = typeof(Program).GetTypeInfo();
+
+            using (var stream = type.Assembly.GetManifestResourceStream($"{type.Namespace}.common-english-words.txt"))
+            {
+                using (var reader = new StreamReader(stream))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        yield return reader.ReadLine();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Reads the raw JSON from the specified <c>JavaScript</c> file.
         /// </summary>
         /// <param name="fileName">The path to the <c>JavaScript</c> file containing JSON.</param>
@@ -286,6 +308,7 @@ namespace MartinCostello.TwitterArchiveParser
             CountGeotaggedTweets(orderedTweets);
             Top10Mentions(orderedTweets);
             Top10Hashtags(orderedTweets);
+            Top10Words(orderedTweets);
             FirstTweet(orderedTweets.First());
         }
 
@@ -336,6 +359,40 @@ namespace MartinCostello.TwitterArchiveParser
             {
                 var user = interactions[i];
                 Console.WriteLine($"  {i + 1, 2:N0}. @{user.screen_name} ({user.count:N0})");
+            }
+
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Prints up to the top 10 most used words in the specified tweets.
+        /// </summary>
+        /// <param name="tweets">The tweets to get up to the top 10 words for.</param>
+        private static void Top10Words(IEnumerable<JObject> tweets)
+        {
+            var punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '&', '-' };
+
+            var words = tweets
+                .Select((p) => (string)p["text"])
+                .SelectMany((p) => p.Split(' '))
+                .Select((p) => p.Trim(punctuation))
+                .Where((p) => !p.StartsWith("#"))
+                .Where((p) => !p.StartsWith("@"))
+                .Except(LoadCommonEnglishWords())
+                .GroupBy((p) => p.ToLowerInvariant())
+                .Select((p) => new { text = p.Key, count = p.Count() })
+                .OrderByDescending((p) => p.count)
+                .ThenBy((p) => p.text)
+                .Take(10)
+                .ToArray();
+
+            Console.WriteLine($"Top {words.Length} words:");
+            Console.WriteLine();
+
+            for (int i = 0; i < words.Length; i++)
+            {
+                var word = words[i];
+                Console.WriteLine($"  {i + 1, 2:N0}. {word.text} ({word.count:N0})");
             }
 
             Console.WriteLine();
