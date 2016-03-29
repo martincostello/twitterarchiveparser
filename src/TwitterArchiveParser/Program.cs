@@ -438,7 +438,7 @@ Date joined: {user["created_at"]},
             var tweets = ReadTweetsFromArchive(archivePath);
 
             int count = 0;
-            var options = new UpdateOptions { IsUpsert = true };
+            var options = new UpdateOptions() { IsUpsert = true };
 
             foreach (var tweet in tweets)
             {
