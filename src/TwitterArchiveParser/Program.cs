@@ -26,6 +26,18 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="args">The command-line arguments passed to the application.</param>
         internal static void Main(string[] args)
         {
+            MainAsync(args).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// The main asynchronous entry point to the application.
+        /// </summary>
+        /// <param name="args">The command-line arguments passed to the application.</param>
+        /// <returns>
+        /// A <see cref="Task"/> representing the application's execution.
+        /// </returns>
+        private static async Task MainAsync(string[] args)
+        {
             PrintBanner();
 
             try
@@ -35,7 +47,7 @@ namespace MartinCostello.TwitterArchiveParser
                 if (string.Equals(archivePath, "--import-to-mongodb", StringComparison.OrdinalIgnoreCase))
                 {
                     archivePath = args.ElementAtOrDefault(1) ?? Environment.CurrentDirectory;
-                    ImportTweetsAsync(archivePath).Wait();
+                    await ImportTweetsAsync(archivePath);
                 }
                 else
                 {
