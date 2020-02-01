@@ -7,8 +7,8 @@
       "documentExposedElements": true,
       "documentInterfaces": true,
       "documentInternalElements": true,
-      "documentPrivateElements": true,
-      "documentPrivateFields": true,
+      "documentPrivateElements": false,
+      "documentPrivateFields": false,
       "fileNamingConvention": "metadata",
       "xmlHeader": false,
       "variables": {
@@ -21,12 +21,10 @@
     "layoutRules": {
       "newlineAtEndOfFile": "require"
     },
-    "maintainabilityRules": {
-    },
+    "maintainabilityRules": {},
     "namingRules": {
       "allowCommonHungarianPrefixes": true,
-      "allowedHungarianPrefixes": [
-      ]
+      "allowedHungarianPrefixes": []
     },
     "orderingRules": {
       "elementOrder": [
@@ -37,11 +35,9 @@
         "readonly"
       ],
       "systemUsingDirectivesFirst": true,
-      "usingDirectivesPlacement": "insideNamespace"
+      "usingDirectivesPlacement": "outsideNamespace"
     },
-    "readabilityRules": {
-    },
-    "spacingRules": {
-    }
+    "readabilityRules": {},
+    "spacingRules": {}
   }
 }

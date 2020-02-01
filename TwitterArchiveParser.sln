@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E400D36D-C91B-4E26-A270-B29DF040A00E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitterArchiveParser", "src\TwitterArchiveParser\TwitterArchiveParser.csproj", "{CF4A4EC4-647A-4326-936C-BD6D942F86DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{ADAD1F5C-F5E9-4082-99C4-CDF2174103F1}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
+		global.json = global.json
+		LICENSE = LICENSE
+		NuGet.config = NuGet.config
+		README.md = README.md
+		stylecop.json = stylecop.json
+		TwitterArchiveParser.ruleset = TwitterArchiveParser.ruleset
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CF4A4EC4-647A-4326-936C-BD6D942F86DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF4A4EC4-647A-4326-936C-BD6D942F86DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF4A4EC4-647A-4326-936C-BD6D942F86DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF4A4EC4-647A-4326-936C-BD6D942F86DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CF4A4EC4-647A-4326-936C-BD6D942F86DA} = {E400D36D-C91B-4E26-A270-B29DF040A00E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {29B340EF-C95C-4461-834B-3A4C8B01717B}
+	EndGlobalSection
+EndGlobal
