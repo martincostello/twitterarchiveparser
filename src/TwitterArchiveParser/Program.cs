@@ -550,6 +550,7 @@ namespace MartinCostello.TwitterArchiveParser
         private static IEnumerable<string> GetNormalizedWords(JsonDocument tweets)
         {
             var commonWords = LoadCommonEnglishWords();
+            commonWords.Add("RT");
 
             return tweets.GetTweets()
                 .Select((p) => p.GetTweet())
@@ -557,6 +558,9 @@ namespace MartinCostello.TwitterArchiveParser
                 .Select((p) => p.Trim(Punctuation))
                 .Where((p) => !string.IsNullOrWhiteSpace(p))
                 .Select((p) => p.ToLowerInvariant())
+                .Select((p) => p.Replace('’', '\''))
+                .Select((p) => p.Replace('“', '\"'))
+                .Select((p) => p.Replace('”', '\"'))
                 .Where((p) => !p.StartsWith("#", StringComparison.Ordinal))
                 .Where((p) => !p.StartsWith("@", StringComparison.Ordinal))
                 .Where((p) => !p.StartsWith("http://", StringComparison.Ordinal))
