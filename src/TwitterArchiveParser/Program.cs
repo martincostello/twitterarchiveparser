@@ -225,7 +225,7 @@ namespace MartinCostello.TwitterArchiveParser
                 }
             }
 
-            Console.WriteLine($"This Twitter archive contains {count:N0} geo-tagged tweets.");
+            Console.WriteLine($"This Twitter archive contains {count:N0} geo-tagged tweet(s).");
         }
 
         /// <summary>
@@ -239,56 +239,61 @@ namespace MartinCostello.TwitterArchiveParser
 
             foreach (var tweet in tweets.GetTweets())
             {
-                if (tweet.TryGetProperty("favorite_count", out var liked))
+                if (!tweet.TryGetProperty("favorite_count", out var liked))
                 {
-                    int timesLiked = int.Parse(liked.GetString(), CultureInfo.InvariantCulture);
-
-                    if (timesLiked > 0)
-                    {
-                        likes++;
-                    }
-
-                    totalLikes += timesLiked;
+                    continue;
                 }
+
+                int timesLiked = int.Parse(liked.GetString(), CultureInfo.InvariantCulture);
+
+                if (timesLiked > 0)
+                {
+                    likes++;
+                }
+
+                totalLikes += timesLiked;
             }
 
-            Console.WriteLine($"This Twitter archive contains {likes:N0} tweets that were liked for a total of {totalLikes:N0} likes.");
+            Console.WriteLine($"This Twitter archive contains {likes:N0} tweet(s) that were liked for a total of {totalLikes:N0} like(s).");
         }
 
         /// <summary>
         /// Prints the number of media items embedded in the tweets in the specified document.
         /// </summary>
         /// <param name="tweets">The tweets to count the media in.</param>
-        private static void ComputeMedia(JsonDocument tweets)
+        /// <param name="take">The number of media types to show.</param>
+        private static void ComputeMedia(JsonDocument tweets, int take = 10)
         {
             var media = new List<JsonElement>();
 
             foreach (var tweet in tweets.GetTweets())
             {
-                if (tweet.TryGetProperty("entities", out var entities) &&
+                if ((tweet.TryGetProperty("extended_entities", out var entities) ||
+                     tweet.TryGetProperty("entities", out entities)) &&
                     entities.TryGetProperty("media", out var array))
                 {
                     media.AddRange(array.EnumerateArray());
                 }
             }
 
-            Console.WriteLine($"This Twitter archive contains {media.Count:N0} items of media.");
+            Console.WriteLine($"This Twitter archive contains {media.Count:N0} item(s) of media.");
             Console.WriteLine();
 
             var mediaTypes = media
-                .GroupBy((p) => p.GetProperty("media_url").GetString().Split('.').Last().ToUpperInvariant())
-                .Select((p) => new { type = p.Key, count = p.Count() })
-                .OrderByDescending((p) => p.count)
-                .Take(10)
+                .Select((p) => p.GetProperty("type").GetString())
+                .GroupBy((p) => p)
+                .Select((p) => new { Type = p.Key, Count = p.Count() })
+                .OrderByDescending((p) => p.Count)
+                .Take(take)
                 .ToArray();
 
-            Console.WriteLine($"Top {mediaTypes.Length} media types:");
+            Console.WriteLine($"Top {Math.Min(mediaTypes.Length, take)} media format(s):");
             Console.WriteLine();
 
             for (int i = 0; i < mediaTypes.Length; i++)
             {
                 var mediaType = mediaTypes[i];
-                Console.WriteLine($"  {i + 1,2:N0}. {mediaType.type} ({mediaType.count:N0})");
+                Console.WriteLine($"  {i + 1,2:N0}. {mediaType.Type} ({mediaType.Count:N0})");
             }
 
             Console.WriteLine();
@@ -318,7 +323,7 @@ namespace MartinCostello.TwitterArchiveParser
                 }
             }
 
-            Console.WriteLine($"This Twitter archive contains {retweets:N0} tweets that were retweeted for a total of {totalRetweets:N0} retweets.");
+            Console.WriteLine($"This Twitter archive contains {retweets:N0} tweet(s) that were retweeted for a total of {totalRetweets:N0} retweet(s).");
             Console.WriteLine();
         }
 
@@ -341,7 +346,7 @@ namespace MartinCostello.TwitterArchiveParser
                 .Take(take)
                 .ToArray();
 
-            Console.WriteLine($"Top {take} hashtags:");
+            Console.WriteLine($"Top {Math.Min(hashtags.Length, take)} hashtag(s):");
             Console.WriteLine();
 
             for (int i = 0; i < hashtags.Length; i++)
@@ -372,13 +377,13 @@ namespace MartinCostello.TwitterArchiveParser
                 .Take(take)
                 .ToArray();
 
-            Console.WriteLine($"Top {take} mentions:");
+            Console.WriteLine($"Top {Math.Min(mentions.Length, take)} mention(s):");
             Console.WriteLine();
 
             for (int i = 0; i < mentions.Length; i++)
             {
-                var hashtag = mentions[i];
-                Console.WriteLine($"  {i + 1,2:N0}. {hashtag.Word} ({hashtag.Count:N0})");
+                var mention = mentions[i];
+                Console.WriteLine($"  {i + 1,2:N0}. {mention.Word} ({mention.Count:N0})");
             }
 
             Console.WriteLine();
@@ -401,7 +406,7 @@ namespace MartinCostello.TwitterArchiveParser
                 .Take(take)
                 .ToArray();
 
-            Console.WriteLine($"Top {take} words:");
+            Console.WriteLine($"Top {Math.Min(words.Length, take)} words:");
             Console.WriteLine();
 
             for (int i = 0; i < words.Length; i++)
