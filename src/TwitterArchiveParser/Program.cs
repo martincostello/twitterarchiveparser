@@ -452,7 +452,7 @@ namespace MartinCostello.TwitterArchiveParser
                 var tweet = element.GetProperty("tweet");
                 string text = tweet.GetProperty("full_text").GetString().ToLowerInvariant();
 
-                if (text.Split(separators, StringSplitOptions.None).Select((p) => p.Trim(punctuation)).Contains(word))
+                if (text.Split(separators, StringSplitOptions.None).Select((p) => p.Trim(punctuation)).Contains(word, StringComparer.OrdinalIgnoreCase))
                 {
                     wordTweets.Add(tweet);
                 }
