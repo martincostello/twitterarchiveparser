@@ -18,7 +18,9 @@ namespace MartinCostello.TwitterArchiveParser
     /// </summary>
     internal sealed class Program
     {
-        private const string DateFormat = "ddd MMM dd HH:mm:ss zzz yyyy";
+        private static readonly char[] Punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '’', '“', '”', '_', '*' };
+
+        private static readonly string[] Separators = new[] { " ", "...", "\n" };
 
         /// <summary>
         /// Gets or sets the path to the tweet archive directory.
@@ -214,10 +216,8 @@ namespace MartinCostello.TwitterArchiveParser
         {
             int count = 0;
 
-            foreach (var element in tweets.RootElement.EnumerateArray())
+            foreach (var tweet in tweets.GetTweets())
             {
-                var tweet = element.GetProperty("tweet");
-
                 if (tweet.TryGetProperty("geo", out var geo) &&
                     geo.TryGetProperty("coordinates", out var _))
                 {
@@ -237,10 +237,8 @@ namespace MartinCostello.TwitterArchiveParser
             int likes = 0;
             int totalLikes = 0;
 
-            foreach (var element in tweets.RootElement.EnumerateArray())
+            foreach (var tweet in tweets.GetTweets())
             {
-                var tweet = element.GetProperty("tweet");
-
                 if (tweet.TryGetProperty("favorite_count", out var liked))
                 {
                     int timesLiked = int.Parse(liked.GetString(), CultureInfo.InvariantCulture);
@@ -265,10 +263,8 @@ namespace MartinCostello.TwitterArchiveParser
         {
             var media = new List<JsonElement>();
 
-            foreach (var element in tweets.RootElement.EnumerateArray())
+            foreach (var tweet in tweets.GetTweets())
             {
-                var tweet = element.GetProperty("tweet");
-
                 if (tweet.TryGetProperty("entities", out var entities) &&
                     entities.TryGetProperty("media", out var array))
                 {
@@ -307,10 +303,8 @@ namespace MartinCostello.TwitterArchiveParser
             int retweets = 0;
             int totalRetweets = 0;
 
-            foreach (var element in tweets.RootElement.EnumerateArray())
+            foreach (var tweet in tweets.GetTweets())
             {
-                var tweet = element.GetProperty("tweet");
-
                 if (tweet.TryGetProperty("retweet_count", out var retweeted))
                 {
                     int timesRetweeted = int.Parse(retweeted.GetString(), CultureInfo.InvariantCulture);
@@ -335,8 +329,7 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of hashtags to show.</param>
         private static void ComputeTopHashtags(JsonDocument tweets, int take)
         {
-            var hashtags = tweets.RootElement.EnumerateArray()
-                .Select((p) => p.GetProperty("tweet"))
+            var hashtags = tweets.GetTweets()
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("hashtags", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("hashtags").EnumerateArray())
@@ -367,8 +360,7 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of mentions to show.</param>
         private static void ComputeTopMentions(JsonDocument tweets, int take)
         {
-            var mentions = tweets.RootElement.EnumerateArray()
-                .Select((p) => p.GetProperty("tweet"))
+            var mentions = tweets.GetTweets()
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("user_mentions", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("user_mentions").EnumerateArray())
@@ -399,22 +391,9 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of words to show.</param>
         private static void ComputeTopWords(JsonDocument tweets, int take)
         {
-            var punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '’', '“', '”', '_', '*' };
-            var separators = new[] { " ", "...", "\n" };
             var commonWords = LoadCommonEnglishWords();
 
-            var words = tweets.RootElement.EnumerateArray()
-                .Select((p) => p.GetProperty("tweet").GetProperty("full_text").GetString())
-                .SelectMany((p) => p.Split(separators, StringSplitOptions.None))
-                .Select((p) => p.Trim(punctuation))
-                .Where((p) => !string.IsNullOrWhiteSpace(p))
-                .Select((p) => p.ToLowerInvariant())
-                .Where((p) => !p.StartsWith("#", StringComparison.Ordinal))
-                .Where((p) => !p.StartsWith("@", StringComparison.Ordinal))
-                .Where((p) => !p.StartsWith("http://", StringComparison.Ordinal))
-                .Where((p) => !p.StartsWith("https://", StringComparison.Ordinal))
-                .Where((p) => char.IsLetter(p[0]))
-                .Where((p) => !commonWords.Contains(p))
+            var words = GetNormalizedWords(tweets)
                 .GroupBy((p) => p)
                 .Select((p) => new { Word = p.Key, Count = p.Count() })
                 .OrderByDescending((p) => p.Count)
@@ -441,25 +420,21 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="word">The word to find.</param>
         private static void ComputeWordStats(JsonDocument tweets, string word)
         {
-            var punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '’', '“', '”', '_', '*' };
-            var separators = new[] { " ", "...", "\n" };
             var commonWords = LoadCommonEnglishWords();
-
             var wordTweets = new List<JsonElement>();
 
-            foreach (var element in tweets.RootElement.EnumerateArray())
+            foreach (var tweet in tweets.GetTweets())
             {
-                var tweet = element.GetProperty("tweet");
-                string text = tweet.GetProperty("full_text").GetString().ToLowerInvariant();
+                string text = tweet.GetTweet().ToLowerInvariant();
 
-                if (text.Split(separators, StringSplitOptions.None).Select((p) => p.Trim(punctuation)).Contains(word, StringComparer.OrdinalIgnoreCase))
+                if (text.Split(Separators, StringSplitOptions.None).Select((p) => p.Trim(Punctuation)).Contains(word, StringComparer.OrdinalIgnoreCase))
                 {
                     wordTweets.Add(tweet);
                 }
             }
 
             wordTweets = wordTweets
-                .OrderBy((p) => DateTimeOffset.ParseExact(p.GetProperty("created_at").GetString(), DateFormat, CultureInfo.InvariantCulture))
+                .OrderBy((p) => p.GetCreatedDate())
                 .ToList();
 
             Console.WriteLine($"You have tweeted about \"{word}\" {wordTweets.Count:N0} time(s).");
@@ -468,10 +443,10 @@ namespace MartinCostello.TwitterArchiveParser
             if (wordTweets.Count > 0)
             {
                 var tweet = wordTweets[0];
-                string tweetText = tweet.GetProperty("full_text").GetString();
+                string tweetText = tweet.GetTweet();
 
                 Console.WriteLine(
-        $@"  First tweet at: {tweet.GetProperty("created_at")}
+        $@"  First tweet at: {tweet.GetCreatedDate()}
   Text: ""{tweetText}"" ({tweetText.Length} characters)
 ");
                 Console.WriteLine();
@@ -479,10 +454,10 @@ namespace MartinCostello.TwitterArchiveParser
                 if (wordTweets.Count > 1)
                 {
                     tweet = wordTweets[^1];
-                    tweetText = tweet.GetProperty("full_text").GetString();
+                    tweetText = tweet.GetTweet();
 
                     Console.WriteLine(
-            $@"  Latest tweet at: {tweet.GetProperty("created_at")}
+            $@"  Latest tweet at: {tweet.GetCreatedDate()}
   Text: ""{tweetText}"" ({tweetText.Length} characters)
 ");
                     Console.WriteLine();
@@ -525,19 +500,17 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="tweets">The tweets to get the first tweet from.</param>
         private static void ShowFirstTweet(JsonDocument tweets)
         {
-            var tweet = tweets.RootElement
-                .EnumerateArray()
-                .Select((p) => p.GetProperty("tweet"))
-                .OrderBy((p) => DateTimeOffset.ParseExact(p.GetProperty("created_at").GetString(), DateFormat, CultureInfo.InvariantCulture))
+            var tweet = tweets.GetTweets()
+                .OrderBy((p) => p.GetCreatedDate())
                 .First();
 
-            string text = tweet.GetProperty("full_text").GetString();
+            string text = tweet.GetTweet();
 
             Console.WriteLine("First tweet:");
             Console.WriteLine();
 
             Console.WriteLine(
-                $@"  Posted at: {tweet.GetProperty("created_at")}
+                $@"  Posted at: {tweet.GetCreatedDate()}
   Text: ""{text}"" ({text.Length} characters)
 ");
         }
@@ -567,6 +540,24 @@ namespace MartinCostello.TwitterArchiveParser
             };
 
             return await JsonDocument.ParseAsync(stream, options, cancellationToken);
+        }
+
+        private static IEnumerable<string> GetNormalizedWords(JsonDocument tweets)
+        {
+            var commonWords = LoadCommonEnglishWords();
+
+            return tweets.GetTweets()
+                .Select((p) => p.GetTweet())
+                .SelectMany((p) => p.Split(Separators, StringSplitOptions.None))
+                .Select((p) => p.Trim(Punctuation))
+                .Where((p) => !string.IsNullOrWhiteSpace(p))
+                .Select((p) => p.ToLowerInvariant())
+                .Where((p) => !p.StartsWith("#", StringComparison.Ordinal))
+                .Where((p) => !p.StartsWith("@", StringComparison.Ordinal))
+                .Where((p) => !p.StartsWith("http://", StringComparison.Ordinal))
+                .Where((p) => !p.StartsWith("https://", StringComparison.Ordinal))
+                .Where((p) => char.IsLetter(p[0]))
+                .Where((p) => !commonWords.Contains(p, StringComparer.OrdinalIgnoreCase));
         }
     }
 }
