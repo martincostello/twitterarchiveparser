@@ -152,6 +152,11 @@ namespace MartinCostello.TwitterArchiveParser
         /// </returns>
         internal async Task<int> OnExecuteAsync(CommandLineApplication app, CancellationToken cancellationToken = default)
         {
+            if (Environment.GetEnvironmentVariable("WT_SESSION") != null)
+            {
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+            }
+
             if (string.IsNullOrEmpty(ArchivePath))
             {
                 app.ShowHelp();
