@@ -557,15 +557,15 @@ namespace MartinCostello.TwitterArchiveParser
                 .SelectMany((p) => p.Split(Separators, StringSplitOptions.None))
                 .Select((p) => p.Trim(Punctuation))
                 .Where((p) => !string.IsNullOrWhiteSpace(p))
-                .Select((p) => p.ToLowerInvariant())
                 .Select((p) => p.Replace('’', '\''))
                 .Select((p) => p.Replace('“', '\"'))
                 .Select((p) => p.Replace('”', '\"'))
                 .Where((p) => !p.StartsWith("#", StringComparison.Ordinal))
                 .Where((p) => !p.StartsWith("@", StringComparison.Ordinal))
+                .Select((p) => p.ToLowerInvariant())
                 .Where((p) => !p.StartsWith("http://", StringComparison.Ordinal))
                 .Where((p) => !p.StartsWith("https://", StringComparison.Ordinal))
-                .Where((p) => char.IsLetter(p[0]))
+                .Where((p) => char.IsLetter(p[0])) // TODO Remove once emoji supported well
                 .Where((p) => !commonWords.Contains(p, StringComparer.OrdinalIgnoreCase));
         }
     }
