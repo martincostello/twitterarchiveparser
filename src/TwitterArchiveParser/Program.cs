@@ -565,8 +565,21 @@ namespace MartinCostello.TwitterArchiveParser
                 .Select((p) => p.ToLowerInvariant())
                 .Where((p) => !p.StartsWith("http://", StringComparison.Ordinal))
                 .Where((p) => !p.StartsWith("https://", StringComparison.Ordinal))
-                .Where((p) => char.IsLetter(p[0])) // TODO Remove once emoji supported well
+                .Where((p) => char.IsLetter(p[0]) || IsSingleEmoji(p))
                 .Where((p) => !commonWords.Contains(p, StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static bool IsSingleEmoji(string value)
+        {
+            if (value.Length != 2)
+            {
+                // Multiple emoji, not an emoji, or a "special" emoji like 🏳️‍🌈
+                return false;
+            }
+
+            // Thanks to https://schneids.net/emojis-and-string-length
+            var info = new StringInfo(value);
+            return info.LengthInTextElements == 1;
         }
     }
 }
