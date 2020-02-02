@@ -38,7 +38,7 @@ namespace MartinCostello.TwitterArchiveParser
         /// <returns>
         /// A <see cref="string"/> containing the tweet's text.
         /// </returns>
-        internal static string GetTweet(this JsonElement element)
+        internal static string GetTweetText(this JsonElement element)
             => element.GetProperty("full_text").GetString();
 
         /// <summary>

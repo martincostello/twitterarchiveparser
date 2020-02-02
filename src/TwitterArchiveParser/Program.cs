@@ -254,9 +254,8 @@ namespace MartinCostello.TwitterArchiveParser
                 if (timesLiked > 0)
                 {
                     likes++;
+                    totalLikes += timesLiked;
                 }
-
-                totalLikes += timesLiked;
             }
 
             Console.WriteLine($"This Twitter archive contains {likes:N0} tweet(s) that were liked for a total of {totalLikes:N0} like(s).");
@@ -315,15 +314,16 @@ namespace MartinCostello.TwitterArchiveParser
 
             foreach (var tweet in tweets.GetTweets())
             {
-                if (tweet.TryGetProperty("retweet_count", out var retweeted))
+                if (!tweet.TryGetProperty("retweet_count", out var retweeted))
                 {
-                    int timesRetweeted = int.Parse(retweeted.GetString(), CultureInfo.InvariantCulture);
+                    continue;
+                }
 
-                    if (timesRetweeted > 0)
-                    {
-                        retweets++;
-                    }
+                int timesRetweeted = int.Parse(retweeted.GetString(), CultureInfo.InvariantCulture);
 
+                if (timesRetweeted > 0)
+                {
+                    retweets++;
                     totalRetweets += timesRetweeted;
                 }
             }
@@ -339,7 +339,8 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of hashtags to show.</param>
         private static void ComputeTopHashtags(JsonDocument tweets, int take)
         {
-            var hashtags = tweets.GetTweets()
+            var hashtags = tweets
+                .GetTweets()
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("hashtags", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("hashtags").EnumerateArray())
@@ -370,7 +371,8 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of mentions to show.</param>
         private static void ComputeTopMentions(JsonDocument tweets, int take)
         {
-            var mentions = tweets.GetTweets()
+            var mentions = tweets
+                .GetTweets()
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("user_mentions", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("user_mentions").EnumerateArray())
@@ -401,8 +403,6 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="take">The number of words to show.</param>
         private static void ComputeTopWords(JsonDocument tweets, int take)
         {
-            var commonWords = LoadCommonEnglishWords();
-
             var words = GetNormalizedWords(tweets)
                 .GroupBy((p) => p)
                 .Select((p) => new { Word = p.Key, Count = p.Count() })
@@ -430,14 +430,17 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="word">The word to find.</param>
         private static void ComputeWordStats(JsonDocument tweets, string word)
         {
-            var commonWords = LoadCommonEnglishWords();
             var wordTweets = new List<JsonElement>();
 
             foreach (var tweet in tweets.GetTweets())
             {
-                string text = tweet.GetTweet().ToLowerInvariant();
+                string text = tweet.GetTweetText().ToLowerInvariant();
 
-                if (text.Split(Separators, StringSplitOptions.None).Select((p) => p.Trim(Punctuation)).Contains(word, StringComparer.OrdinalIgnoreCase))
+                var words = text
+                    .Split(Separators, StringSplitOptions.None)
+                    .Select((p) => p.Trim(Punctuation));
+
+                if (words.Contains(word, StringComparer.OrdinalIgnoreCase))
                 {
                     wordTweets.Add(tweet);
                 }
@@ -453,7 +456,7 @@ namespace MartinCostello.TwitterArchiveParser
             if (wordTweets.Count > 0)
             {
                 var tweet = wordTweets[0];
-                string tweetText = tweet.GetTweet();
+                string tweetText = tweet.GetTweetText();
 
                 Console.WriteLine(
         $@"  First tweet at: {tweet.GetCreatedDate()}
@@ -464,7 +467,7 @@ namespace MartinCostello.TwitterArchiveParser
                 if (wordTweets.Count > 1)
                 {
                     tweet = wordTweets[^1];
-                    tweetText = tweet.GetTweet();
+                    tweetText = tweet.GetTweetText();
 
                     Console.WriteLine(
             $@"  Latest tweet at: {tweet.GetCreatedDate()}
@@ -510,11 +513,12 @@ namespace MartinCostello.TwitterArchiveParser
         /// <param name="tweets">The tweets to get the first tweet from.</param>
         private static void ShowFirstTweet(JsonDocument tweets)
         {
-            var tweet = tweets.GetTweets()
+            var tweet = tweets
+                .GetTweets()
                 .OrderBy((p) => p.GetCreatedDate())
                 .First();
 
-            string text = tweet.GetTweet();
+            string text = tweet.GetTweetText();
 
             Console.WriteLine("First tweet:");
             Console.WriteLine();
@@ -557,8 +561,9 @@ namespace MartinCostello.TwitterArchiveParser
             var commonWords = LoadCommonEnglishWords();
             commonWords.Add("RT");
 
-            return tweets.GetTweets()
-                .Select((p) => p.GetTweet())
+            return tweets
+                .GetTweets()
+                .Select((p) => p.GetTweetText())
                 .SelectMany((p) => p.Split(Separators, StringSplitOptions.None))
                 .Select((p) => p.Trim(Punctuation))
                 .Where((p) => !string.IsNullOrWhiteSpace(p))
@@ -583,8 +588,7 @@ namespace MartinCostello.TwitterArchiveParser
             }
 
             // Thanks to https://schneids.net/emojis-and-string-length
-            var info = new StringInfo(value);
-            return info.LengthInTextElements == 1;
+            return StringInfo.ParseCombiningCharacters(value).Length == 1;
         }
     }
 }
