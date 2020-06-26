@@ -14,4 +14,4 @@ The repository is hosted in [GitHub](https://github.com/martincostello/twitterar
 
 ## License
 
-This project is licensed under the [Apache 2.0](https://github.com/martincostello/twitterarchiveparser/blob/master/LICENSE) license.
+This project is licensed under the [Apache 2.0](https://github.com/martincostello/twitterarchiveparser/blob/main/LICENSE) license.
