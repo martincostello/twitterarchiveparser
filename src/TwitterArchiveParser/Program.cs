@@ -12,9 +12,9 @@ namespace MartinCostello.TwitterArchiveParser;
 /// </summary>
 internal sealed class Program
 {
-    private static readonly char[] Punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '\u2019', '“', '”', '_', '*' };
+    private static readonly char[] Punctuation = { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '\u2019', '“', '”', '_', '*' };
 
-    private static readonly string[] Separators = new[] { " ", "...", "\n" };
+    private static readonly string[] Separators = { " ", "...", "\n" };
 
     /// <summary>
     /// Gets or sets the path to the tweet archive directory.
@@ -146,7 +146,7 @@ internal sealed class Program
     /// </returns>
     internal async Task<int> OnExecuteAsync(CommandLineApplication app, CancellationToken cancellationToken = default)
     {
-        if (Environment.GetEnvironmentVariable("WT_SESSION") != null)
+        if (Environment.GetEnvironmentVariable("WT_SESSION") is { })
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
         }
