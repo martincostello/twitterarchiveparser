@@ -12,7 +12,7 @@ namespace MartinCostello.TwitterArchiveParser;
 /// </summary>
 internal sealed class Program
 {
-    private static readonly char[] Punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '’', '“', '”', '_', '*' };
+    private static readonly char[] Punctuation = new[] { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '\u2019', '“', '”', '_', '*' };
 
     private static readonly string[] Separators = new[] { " ", "...", "\n" };
 
@@ -561,7 +561,7 @@ Text: ""{text}"" ({text.Length} characters)
             .SelectMany((p) => p.Split(Separators, StringSplitOptions.None))
             .Select((p) => p.Trim(Punctuation))
             .Where((p) => !string.IsNullOrWhiteSpace(p))
-            .Select((p) => p.Replace('’', '\''))
+            .Select((p) => p.Replace('\u2019', '\'')) // Smart Apostrophe
             .Select((p) => p.Replace('“', '\"'))
             .Select((p) => p.Replace('”', '\"'))
             .Where((p) => !p.StartsWith("#", StringComparison.Ordinal))
