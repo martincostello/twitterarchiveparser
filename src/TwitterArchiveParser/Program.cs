@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using McMaster.Extensions.CommandLineUtils;
 
@@ -15,6 +16,11 @@ internal sealed class Program
     private static readonly char[] Punctuation = { '.', ',', '!', '?', '£', '$', '\"', '\'', '*', ';', ':', '(', ')', '[', ']', '&', '-', '\n', '\u2019', '“', '”', '_', '*' };
 
     private static readonly string[] Separators = { " ", "...", "\n" };
+
+    private static readonly JsonDocumentOptions JsonOptions = new()
+    {
+        AllowTrailingCommas = true,
+    };
 
     /// <summary>
     /// Gets or sets the path to the tweet archive directory.
@@ -157,7 +163,12 @@ internal sealed class Program
             return 0;
         }
 
-        using var tweets = await ReadTweetsFromArchiveAsync(ArchivePath, cancellationToken);
+        var tweets = Enumerable.Empty<JsonElement>();
+
+        await foreach (var document in ReadTweetsFromArchiveAsync(ArchivePath, cancellationToken))
+        {
+            tweets = tweets.Concat(document.GetTweets());
+        }
 
         if (FirstTweet)
         {
@@ -211,11 +222,11 @@ internal sealed class Program
     /// Prints the number of tweets in the specified document that were geo-tagged.
     /// </summary>
     /// <param name="tweets">The tweets to count for geo-tags.</param>
-    private static void ComputeGeotagged(JsonDocument tweets)
+    private static void ComputeGeotagged(IEnumerable<JsonElement> tweets)
     {
         int count = 0;
 
-        foreach (var tweet in tweets.GetTweets())
+        foreach (var tweet in tweets)
         {
             if (tweet.TryGetProperty("geo", out var geo) &&
                 geo.TryGetProperty("coordinates", out var _))
@@ -231,12 +242,12 @@ internal sealed class Program
     /// Prints the number of likes in the tweets in the specified document.
     /// </summary>
     /// <param name="tweets">The tweets to count the likes in.</param>
-    private static void ComputeLikes(JsonDocument tweets)
+    private static void ComputeLikes(IEnumerable<JsonElement> tweets)
     {
         int likes = 0;
         int totalLikes = 0;
 
-        foreach (var tweet in tweets.GetTweets())
+        foreach (var tweet in tweets)
         {
             if (!tweet.TryGetProperty("favorite_count", out var liked))
             {
@@ -260,11 +271,11 @@ internal sealed class Program
     /// </summary>
     /// <param name="tweets">The tweets to count the media in.</param>
     /// <param name="take">The number of media types to show.</param>
-    private static void ComputeMedia(JsonDocument tweets, int take = 10)
+    private static void ComputeMedia(IEnumerable<JsonElement> tweets, int take = 10)
     {
         var media = new List<JsonElement>();
 
-        foreach (var tweet in tweets.GetTweets())
+        foreach (var tweet in tweets)
         {
             if ((tweet.TryGetProperty("extended_entities", out var entities) ||
                     tweet.TryGetProperty("entities", out entities)) &&
@@ -301,12 +312,12 @@ internal sealed class Program
     /// Prints the number of retweets in the tweets in the specified document.
     /// </summary>
     /// <param name="tweets">The tweets to count the retweets in.</param>
-    private static void ComputeRetweets(JsonDocument tweets)
+    private static void ComputeRetweets(IEnumerable<JsonElement> tweets)
     {
         int retweets = 0;
         int totalRetweets = 0;
 
-        foreach (var tweet in tweets.GetTweets())
+        foreach (var tweet in tweets)
         {
             if (!tweet.TryGetProperty("retweet_count", out var retweeted))
             {
@@ -331,10 +342,9 @@ internal sealed class Program
     /// </summary>
     /// <param name="tweets">The tweets to get up to the top N words for.</param>
     /// <param name="take">The number of hashtags to show.</param>
-    private static void ComputeTopHashtags(JsonDocument tweets, int take)
+    private static void ComputeTopHashtags(IEnumerable<JsonElement> tweets, int take)
     {
         var hashtags = tweets
-            .GetTweets()
             .Where((p) => p.TryGetProperty("entities", out var _))
             .Where((p) => p.GetProperty("entities").TryGetProperty("hashtags", out var _))
             .SelectMany((p) => p.GetProperty("entities").GetProperty("hashtags").EnumerateArray())
@@ -363,10 +373,9 @@ internal sealed class Program
     /// </summary>
     /// <param name="tweets">The tweets to get up to the top N mentions for.</param>
     /// <param name="take">The number of mentions to show.</param>
-    private static void ComputeTopMentions(JsonDocument tweets, int take)
+    private static void ComputeTopMentions(IEnumerable<JsonElement> tweets, int take)
     {
         var mentions = tweets
-            .GetTweets()
             .Where((p) => p.TryGetProperty("entities", out var _))
             .Where((p) => p.GetProperty("entities").TryGetProperty("user_mentions", out var _))
             .SelectMany((p) => p.GetProperty("entities").GetProperty("user_mentions").EnumerateArray())
@@ -395,7 +404,7 @@ internal sealed class Program
     /// </summary>
     /// <param name="tweets">The tweets to get up to the top N words for.</param>
     /// <param name="take">The number of words to show.</param>
-    private static void ComputeTopWords(JsonDocument tweets, int take)
+    private static void ComputeTopWords(IEnumerable<JsonElement> tweets, int take)
     {
         var words = GetNormalizedWords(tweets)
             .GroupBy((p) => p)
@@ -422,11 +431,11 @@ internal sealed class Program
     /// </summary>
     /// <param name="tweets">The tweets to search the word for.</param>
     /// <param name="word">The word to find.</param>
-    private static void ComputeWordStats(JsonDocument tweets, string word)
+    private static void ComputeWordStats(IEnumerable<JsonElement> tweets, string word)
     {
         var wordTweets = new List<JsonElement>();
 
-        foreach (var tweet in tweets.GetTweets())
+        foreach (var tweet in tweets)
         {
             string text = tweet.GetTweetText().ToLowerInvariant();
 
@@ -505,10 +514,9 @@ Text: ""{tweetText}"" ({tweetText.Length} characters)
     /// Shows the user's first tweet.
     /// </summary>
     /// <param name="tweets">The tweets to get the first tweet from.</param>
-    private static void ShowFirstTweet(JsonDocument tweets)
+    private static void ShowFirstTweet(IEnumerable<JsonElement> tweets)
     {
         var tweet = tweets
-            .GetTweets()
             .OrderBy((p) => p.GetCreatedDate())
             .First();
 
@@ -531,32 +539,46 @@ Text: ""{text}"" ({text.Length} characters)
     /// <returns>
     /// A <see cref="IEnumerable{T}"/> containing the tweets read from the specified Twitter archive.
     /// </returns>
-    private static async Task<JsonDocument> ReadTweetsFromArchiveAsync(
+    private static async IAsyncEnumerable<JsonDocument> ReadTweetsFromArchiveAsync(
         string archivePath,
-        CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         archivePath = Path.GetFullPath(archivePath);
         string tweetsPath = Path.Combine(archivePath, "tweets.js");
 
         using var stream = File.OpenRead(tweetsPath);
 
-        stream.Seek("window.YTD.tweet.part0 = ".Length, SeekOrigin.Begin);
+        yield return await ReadTweetsFromStreamAsync(stream, 0, cancellationToken);
 
-        var options = new JsonDocumentOptions()
+        for (int i = 1; ; i++)
         {
-            AllowTrailingCommas = true,
-        };
+            tweetsPath = Path.Combine(archivePath, $"tweets-part{i}.js");
 
-        return await JsonDocument.ParseAsync(stream, options, cancellationToken);
+            if (!File.Exists(tweetsPath))
+            {
+                break;
+            }
+
+            using var part = File.OpenRead(tweetsPath);
+            yield return await ReadTweetsFromStreamAsync(part, i, cancellationToken);
+        }
     }
 
-    private static IEnumerable<string> GetNormalizedWords(JsonDocument tweets)
+    private static async Task<JsonDocument> ReadTweetsFromStreamAsync(
+        Stream stream,
+        int part,
+        CancellationToken cancellationToken)
+    {
+        stream.Seek($"window.YTD.tweet.part{part} = ".Length, SeekOrigin.Begin);
+        return await JsonDocument.ParseAsync(stream, JsonOptions, cancellationToken);
+    }
+
+    private static IEnumerable<string> GetNormalizedWords(IEnumerable<JsonElement> tweets)
     {
         var commonWords = LoadCommonEnglishWords();
         commonWords.Add("RT");
 
         return tweets
-            .GetTweets()
             .Select((p) => p.GetTweetText())
             .SelectMany((p) => p.Split(Separators, StringSplitOptions.None))
             .Select((p) => p.Trim(Punctuation))
