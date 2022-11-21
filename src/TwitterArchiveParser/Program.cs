@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using McMaster.Extensions.CommandLineUtils;
@@ -23,11 +24,11 @@ internal sealed class Program
     };
 
     /// <summary>
-    /// Gets or sets the path to the tweet archive directory.
+    /// Gets or sets the path to the tweet archive ZIP file.
     /// </summary>
     [Option(
         CommandOptionType.SingleValue,
-        Description = "The path to the archive directory.",
+        Description = "The path to the archive file.",
         LongName = "archive-path",
         ShortName = "a",
         ShowInHelpText = true)]
@@ -532,34 +533,44 @@ Text: ""{text}"" ({text.Length} characters)
     }
 
     /// <summary>
-    /// Reads the tweet data from the specified Twitter archive directory.
+    /// Reads the tweet data from the specified Twitter archive ZIP file.
     /// </summary>
-    /// <param name="archivePath">The path to the directory containing the tweet archive.</param>
+    /// <param name="archivePath">The path to the ZIP file containing the tweet archive.</param>
     /// <param name="cancellationToken">The optional cancellation token to use.</param>
     /// <returns>
-    /// A <see cref="IEnumerable{T}"/> containing the tweets read from the specified Twitter archive.
+    /// A <see cref="IEnumerable{T}"/> containing the tweets read from the specified Twitter archive ZIP.
     /// </returns>
     private static async IAsyncEnumerable<JsonDocument> ReadTweetsFromArchiveAsync(
         string archivePath,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         archivePath = Path.GetFullPath(archivePath);
-        string tweetsPath = Path.Combine(archivePath, "tweets.js");
 
-        using var stream = File.OpenRead(tweetsPath);
+        if (!File.Exists(archivePath))
+        {
+            throw new FileNotFoundException("The specified Tweet archive cannot be found.", archivePath);
+        }
 
-        yield return await ReadTweetsFromStreamAsync(stream, 0, cancellationToken);
+        using var zip = ZipFile.OpenRead(archivePath);
+
+        var entry = zip.GetEntry("data/tweets.js");
+
+        if (entry is { })
+        {
+            using var stream = entry.Open();
+            yield return await ReadTweetsFromStreamAsync(stream, 0, cancellationToken);
+        }
 
         for (int i = 1; ; i++)
         {
-            tweetsPath = Path.Combine(archivePath, $"tweets-part{i}.js");
+            entry = zip.GetEntry($"data/tweets-part{i}.js");
 
-            if (!File.Exists(tweetsPath))
+            if (entry is null)
             {
                 break;
             }
 
-            using var part = File.OpenRead(tweetsPath);
+            using var part = entry.Open();
             yield return await ReadTweetsFromStreamAsync(part, i, cancellationToken);
         }
     }
@@ -569,7 +580,13 @@ Text: ""{text}"" ({text.Length} characters)
         int part,
         CancellationToken cancellationToken)
     {
-        stream.Seek($"window.YTD.tweet.part{part} = ".Length, SeekOrigin.Begin);
+        // Skip the preamble declaring the JavaScript variable and assigning it
+        int preambleLength = $"window.YTD.tweet.part{part} = ".Length;
+
+        var preamble = new byte[preambleLength];
+        _ = await stream.ReadAsync(preamble, cancellationToken);
+
+        // Parse the JSON from the rest of the stream
         return await JsonDocument.ParseAsync(stream, JsonOptions, cancellationToken);
     }
 
