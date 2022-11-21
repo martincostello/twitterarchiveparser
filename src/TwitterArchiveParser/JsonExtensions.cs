@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Martin Costello, 2016. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json;
 
 namespace MartinCostello.TwitterArchiveParser
@@ -23,7 +20,12 @@ namespace MartinCostello.TwitterArchiveParser
         /// </returns>
         internal static DateTimeOffset GetCreatedDate(this JsonElement element)
         {
-            string createdAt = element.GetProperty("created_at").GetString();
+            string? createdAt = element.GetProperty("created_at").GetString();
+
+            if (createdAt is null)
+            {
+                return DateTimeOffset.MinValue;
+            }
 
             return DateTimeOffset.ParseExact(
                 createdAt,
@@ -39,7 +41,7 @@ namespace MartinCostello.TwitterArchiveParser
         /// A <see cref="string"/> containing the tweet's text.
         /// </returns>
         internal static string GetTweetText(this JsonElement element)
-            => element.GetProperty("full_text").GetString();
+            => element.GetProperty("full_text").GetString() ?? string.Empty;
 
         /// <summary>
         /// Gets the tweets from the specified document.

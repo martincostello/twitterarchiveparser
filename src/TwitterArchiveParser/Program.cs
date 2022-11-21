@@ -1,14 +1,8 @@
 ﻿// Copyright (c) Martin Costello, 2016. All rights reserved.
 // Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
 
 namespace MartinCostello.TwitterArchiveParser
@@ -249,7 +243,7 @@ namespace MartinCostello.TwitterArchiveParser
                     continue;
                 }
 
-                int timesLiked = int.Parse(liked.GetString(), CultureInfo.InvariantCulture);
+                int timesLiked = int.Parse(liked.GetString()!, CultureInfo.InvariantCulture);
 
                 if (timesLiked > 0)
                 {
@@ -319,7 +313,7 @@ namespace MartinCostello.TwitterArchiveParser
                     continue;
                 }
 
-                int timesRetweeted = int.Parse(retweeted.GetString(), CultureInfo.InvariantCulture);
+                int timesRetweeted = int.Parse(retweeted.GetString()!, CultureInfo.InvariantCulture);
 
                 if (timesRetweeted > 0)
                 {
@@ -344,7 +338,7 @@ namespace MartinCostello.TwitterArchiveParser
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("hashtags", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("hashtags").EnumerateArray())
-                .Select((p) => p.GetProperty("text").GetString().ToLowerInvariant())
+                .Select((p) => p.GetProperty("text").GetString()!.ToLowerInvariant())
                 .GroupBy((p) => p)
                 .Select((p) => new { Word = p.Key, Count = p.Count() })
                 .OrderByDescending((p) => p.Count)
@@ -376,7 +370,7 @@ namespace MartinCostello.TwitterArchiveParser
                 .Where((p) => p.TryGetProperty("entities", out var _))
                 .Where((p) => p.GetProperty("entities").TryGetProperty("user_mentions", out var _))
                 .SelectMany((p) => p.GetProperty("entities").GetProperty("user_mentions").EnumerateArray())
-                .Select((p) => p.GetProperty("screen_name").GetString().ToLowerInvariant())
+                .Select((p) => p.GetProperty("screen_name").GetString()!.ToLowerInvariant())
                 .GroupBy((p) => p)
                 .Select((p) => new { Word = p.Key, Count = p.Count() })
                 .OrderByDescending((p) => p.Count)

@@ -3,7 +3,7 @@
     <ApplicationIcon>twitter.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>MartinCostello.TwitterArchiveParser</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
