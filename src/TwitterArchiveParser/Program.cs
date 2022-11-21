@@ -536,7 +536,7 @@ namespace MartinCostello.TwitterArchiveParser
             CancellationToken cancellationToken)
         {
             archivePath = Path.GetFullPath(archivePath);
-            string tweetsPath = Path.Combine(archivePath, "tweet.js");
+            string tweetsPath = Path.Combine(archivePath, "tweets.js");
 
             using var stream = File.OpenRead(tweetsPath);
 
